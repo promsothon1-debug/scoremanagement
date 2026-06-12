@@ -1,0 +1,6 @@
+{
+  "name": "Khmer Student Grade Management",
+  "description": "A responsive Khmer classroom grade management dashboard with integrated Google Sheets auto-sync, metric logs, and CSV exporting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
