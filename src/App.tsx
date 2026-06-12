@@ -110,6 +110,7 @@ export default function App() {
   });
 
   const [activeStudent, setActiveStudent] = useState<Student | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState<'ទាំងអស់' | 'ប្រុស' | 'ស្រី'>('ទាំងអស់');
   const [sortBy, setSortBy] = useState<'serial' | 'rank' | 'name'>(() => {
@@ -216,6 +217,7 @@ export default function App() {
     });
 
     setActiveStudent(null);
+    setIsFormOpen(false);
     showNotice('success', `រក្សាទុកពិន្ទុសម្រាប់ « ${name} » ក្នុង [${config.selectedMonth}] ជោគជ័យ!`);
   };
 
@@ -232,6 +234,7 @@ export default function App() {
       return filtered;
     });
     setActiveStudent(null);
+    setIsFormOpen(false);
     showNotice('info', 'បានលុបទិន្នន័យសិស្សរួចរាល់!');
   };
 
@@ -1003,12 +1006,7 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     setActiveStudent(null);
-                    setTimeout(() => {
-                      const el = document.getElementById('student-form-component');
-                      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      const input = el?.querySelector('input[placeholder="ឈ្មោះពេញសិស្ស..."]') as HTMLInputElement;
-                      input?.focus();
-                    }, 50);
+                    setIsFormOpen(true);
                   }}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-xs cursor-pointer hover:shadow-md active:scale-95"
                 >
@@ -1019,32 +1017,49 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex-1 grid grid-cols-1 xl:grid-cols-12 gap-4 overflow-hidden">
-            {/* Student data insertion Input Form */}
-            <div className="xl:col-span-5 overflow-y-auto max-h-full">
-              <StudentForm
-                activeStudent={activeStudent}
-                selectedMonth={config.selectedMonth}
-                isReadOnly={isReadOnly}
-                onSave={handleSaveStudent}
-                onCancelEdit={() => setActiveStudent(null)}
-                nextSerialNo={nextSerialNo}
-              />
+          {/* Modal for StudentForm (Add / Edit Student) */}
+          {(isFormOpen || activeStudent !== null) && (
+            <div 
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 transition-all"
+              onClick={() => {
+                setActiveStudent(null);
+                setIsFormOpen(false);
+              }}
+            >
+              <div 
+                className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto transform scale-100 transition-all border border-slate-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <StudentForm
+                  activeStudent={activeStudent}
+                  selectedMonth={config.selectedMonth}
+                  isReadOnly={isReadOnly}
+                  onSave={handleSaveStudent}
+                  onCancelEdit={() => {
+                    setActiveStudent(null);
+                    setIsFormOpen(false);
+                  }}
+                  nextSerialNo={nextSerialNo}
+                />
+              </div>
             </div>
+          )}
 
-            {/* Student Grade Table Sheet Grid */}
-            <div className="xl:col-span-12 xl:order-last flex-1 flex flex-col overflow-hidden min-h-[300px]">
-              <StudentTable
-                students={filteredStudents}
-                rawStudents={students}
-                onEdit={setActiveStudent}
-                onDelete={handleDeleteStudent}
-                isReadOnly={isReadOnly}
-                selectedMonth={config.selectedMonth}
-                sortBy={sortBy}
-                onSortChange={setSortBy}
-              />
-            </div>
+          {/* Student Grade Table Sheet Grid */}
+          <div className="flex-1 flex flex-col overflow-hidden min-h-[300px]">
+            <StudentTable
+              students={filteredStudents}
+              rawStudents={students}
+              onEdit={(student) => {
+                setActiveStudent(student);
+                setIsFormOpen(true);
+              }}
+              onDelete={handleDeleteStudent}
+              isReadOnly={isReadOnly}
+              selectedMonth={config.selectedMonth}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+            />
           </div>
 
           {/* METRIC CARD BAR */}
