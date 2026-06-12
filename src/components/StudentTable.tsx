@@ -12,6 +12,8 @@ interface StudentTableProps {
   selectedMonth: string;
   sortBy?: 'serial' | 'rank' | 'name';
   onSortChange?: (field: 'serial' | 'rank' | 'name') => void;
+  tableFontSize?: number;
+  alertThreshold?: number;
 }
 
 export default function StudentTable({ 
@@ -22,7 +24,9 @@ export default function StudentTable({
   isReadOnly,
   selectedMonth,
   sortBy = 'serial',
-  onSortChange
+  onSortChange,
+  tableFontSize = 11,
+  alertThreshold = 5.0
 }: StudentTableProps) {
   
   const handleDeleteConfirm = (compStudent: ComputedStudent) => {
@@ -54,9 +58,9 @@ export default function StudentTable({
       )}
 
       <div className="overflow-x-auto overflow-y-auto max-h-[500px] flex-1">
-        <table className="w-full border-collapse text-left" style={{ fontFamily: '"Khmer OS", "Kantumruy Pro", sans-serif' }}>
+        <table className="w-full border-collapse text-left" style={{ fontFamily: '"Khmer OS", "Kantumruy Pro", sans-serif', fontSize: `${tableFontSize}px` }}>
           <thead className="bg-slate-50 sticky top-0 z-10 select-none shadow-[0_1px_0_0_rgba(226,232,240,1)]">
-            <tr className="border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold">
+            <tr className="border-b border-slate-200 text-slate-500 uppercase font-bold" style={{ fontSize: `${Math.max(9, tableFontSize - 1)}px` }}>
               <th 
                 rowSpan={2} 
                 onClick={() => onSortChange?.('serial')}
@@ -87,6 +91,7 @@ export default function StudentTable({
               <th rowSpan={2} className="p-2 text-center border-r border-slate-200 w-14 bg-slate-50">អប់រំកាយ</th>
               <th rowSpan={2} className="p-2 text-center border-r border-slate-200 w-14 bg-slate-50">បំណិន</th>
               <th rowSpan={2} className="p-2 text-center border-r border-slate-200 w-14 bg-slate-50">បរទេស</th>
+              <th colSpan={2} className="p-1.5 text-center border-r border-slate-200 bg-amber-50/70 text-amber-800">វត្តមានការងារ</th>
               <th rowSpan={2} className="p-2 text-center border-r border-slate-200 w-16 bg-slate-100 font-bold text-slate-800">សរុប</th>
               <th rowSpan={2} className="p-2 text-center border-r border-slate-200 w-14 bg-slate-100 font-bold text-slate-800">មធ្យម</th>
               <th 
@@ -103,7 +108,7 @@ export default function StudentTable({
               <th rowSpan={2} className="p-2 text-center border-r border-slate-200 w-12 bg-slate-100 font-bold text-slate-800">និទ្ទេស</th>
               <th rowSpan={2} className="p-2 text-center w-24 bg-slate-50">សកម្មភាព</th>
             </tr>
-            <tr className="border-b border-slate-200 text-slate-400 text-[9px]">
+            <tr className="border-b border-slate-200 text-slate-400" style={{ fontSize: `${Math.max(8, tableFontSize - 2)}px` }}>
               <th className="p-1 text-center border-r border-slate-200 bg-blue-50/30">អាន</th>
               <th className="p-1 text-center border-r border-slate-200 bg-blue-50/30">សរសេរ</th>
               <th className="p-1 text-center border-r border-slate-200 bg-blue-50/30">តែង</th>
@@ -113,12 +118,14 @@ export default function StudentTable({
               <th className="p-1 text-center border-r border-slate-200 bg-purple-50/30">សីល</th>
               <th className="p-1 text-center border-r border-slate-200 bg-purple-50/30">ភូមិ</th>
               <th className="p-1 text-center border-r border-slate-200 bg-purple-50/30">ប្រវត្តិ</th>
+              <th className="p-1 text-center border-r border-slate-200 bg-amber-50/20 text-slate-600">មក</th>
+              <th className="p-1 text-center border-r border-slate-200 bg-amber-50/20 text-rose-700">ឈប់</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {students.length === 0 ? (
               <tr>
-                <td colSpan={20} className="p-8 text-center text-slate-400 bg-slate-50/30">
+                <td colSpan={22} className="p-8 text-center text-slate-400 bg-slate-50/30">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <ShieldAlert className="w-8 h-8 text-slate-300" />
                     <p className="font-semibold text-xs text-slate-500 font-sans">មិនទាន់មានទិន្នន័យសិស្សនៅឡើយទេ!</p>
@@ -127,57 +134,80 @@ export default function StudentTable({
                 </td>
               </tr>
             ) : (
-              students.map((student) => (
-                <tr
-                  key={student.id}
-                  className="hover:bg-slate-50/50 transition-colors group text-[11px] align-middle text-slate-700"
-                >
-                  <td className="p-2.5 border-r border-slate-100 text-center font-mono text-slate-400">{student.serialNo}</td>
-                  <td className="p-2.5 border-r border-slate-100 font-medium text-slate-900 truncate max-w-[140px]">
-                    {student.name}
-                  </td>
-                  <td className="p-2.5 border-r border-slate-100 text-center select-none">
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-medium leading-none ${
-                        student.gender === 'ប្រុស'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-100/60'
-                          : 'bg-rose-50 text-rose-700 border border-rose-100/60'
-                      }`}
-                    >
-                      {student.gender}
-                    </span>
-                  </td>
-                  
-                  {/* Khmer */}
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-blue-50/10">{student.scores.khmerRead}</td>
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-blue-50/10">{student.scores.khmerWrite}</td>
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-blue-50/10">{student.scores.khmerComposition}</td>
-                  
-                  {/* Math */}
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-green-50/10">{student.scores.mathNumbers}</td>
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-green-50/10">{student.scores.mathMeasurement}</td>
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-green-50/10">{student.scores.mathGeometry}</td>
-                  
-                  {/* Science */}
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono">{student.scores.science}</td>
-                  
-                  {/* Social Studies */}
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-purple-50/10">{student.scores.socialCivics}</td>
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-purple-50/10">{student.scores.socialGeography}</td>
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-purple-50/10">{student.scores.socialHistory}</td>
-                  
-                  {/* Other divisions */}
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono">{student.scores.physicalEducation}</td>
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono">{student.scores.practicalSkills}</td>
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono">{student.scores.foreignLanguage}</td>
-                  
-                  {/* Calculated metrics */}
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono font-bold bg-slate-50 text-slate-800">
-                    {student.totalScore}
-                  </td>
-                  <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-slate-50 text-slate-800">
-                    {student.average}
-                  </td>
+              students.map((student) => {
+                const isLowPerformer = student.average < alertThreshold;
+                return (
+                  <tr
+                    key={student.id}
+                    className={`transition-colors group align-middle text-slate-700 ${
+                      isLowPerformer 
+                        ? 'bg-rose-50/70 hover:bg-rose-100/70 border-l-[3px] border-l-red-500' 
+                        : 'hover:bg-slate-50/50'
+                    }`}
+                    style={{ fontSize: `${tableFontSize}px` }}
+                  >
+                    <td className="p-2.5 border-r border-slate-100 text-center font-mono text-slate-400">{student.serialNo}</td>
+                    <td className={`p-2.5 border-r border-slate-100 font-medium truncate max-w-[140px] ${isLowPerformer ? 'text-red-700 font-bold' : 'text-slate-900'}`}>
+                      <div className="flex items-center gap-1">
+                        <span>{student.name}</span>
+                        {isLowPerformer && (
+                          <span className="text-[8px] bg-red-100 text-red-700 px-1 py-0.5 rounded-sm font-semibold select-none shrink-0" style={{ fontSize: `${Math.max(7, tableFontSize - 4)}px` }}>
+                            ខ្សោយ
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-2.5 border-r border-slate-100 text-center select-none">
+                      <span
+                        className={`px-1.5 py-0.5 rounded font-medium leading-none ${
+                          student.gender === 'ប្រុស'
+                            ? 'bg-blue-50 text-blue-700 border border-blue-100/60'
+                            : 'bg-rose-50 text-rose-700 border border-rose-100/60'
+                        }`}
+                        style={{ fontSize: `${Math.max(8, tableFontSize - 2)}px` }}
+                      >
+                        {student.gender}
+                      </span>
+                    </td>
+                    
+                    {/* Khmer */}
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-blue-50/10">{student.scores.khmerRead}</td>
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-blue-50/10">{student.scores.khmerWrite}</td>
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-blue-50/10">{student.scores.khmerComposition}</td>
+                    
+                    {/* Math */}
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-green-50/10">{student.scores.mathNumbers}</td>
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-green-50/10">{student.scores.mathMeasurement}</td>
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-green-50/10">{student.scores.mathGeometry}</td>
+                    
+                    {/* Science */}
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono">{student.scores.science}</td>
+                    
+                    {/* Social Studies */}
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-purple-50/10">{student.scores.socialCivics}</td>
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-purple-50/10">{student.scores.socialGeography}</td>
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-purple-50/10">{student.scores.socialHistory}</td>
+                    
+                    {/* Other divisions */}
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono">{student.scores.physicalEducation}</td>
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono">{student.scores.practicalSkills}</td>
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono">{student.scores.foreignLanguage}</td>
+                    
+                    {/* Attendance */}
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono bg-amber-50/10 text-slate-700">{student.attendance?.present || 0}</td>
+                    <td className={`p-1.5 border-r border-slate-100 text-center font-mono bg-amber-50/10 ${student.attendance?.absent > 0 ? 'text-red-500 font-bold' : 'text-slate-400'}`}>{student.attendance?.absent || 0}</td>
+                    
+                    {/* Calculated metrics */}
+                    <td className="p-1.5 border-r border-slate-100 text-center font-mono font-bold bg-slate-50 text-slate-800">
+                      {student.totalScore}
+                    </td>
+                    <td className={`p-1.5 border-r border-slate-100 text-center font-mono font-bold ${
+                      isLowPerformer 
+                        ? 'bg-red-100 text-red-700 font-black' 
+                        : 'bg-slate-50 text-slate-800'
+                    }`}>
+                      {student.average}
+                    </td>
                   
                   {/* Rank Column */}
                   <td className="p-1.5 border-r border-slate-100 text-center font-mono font-bold text-red-600 bg-red-50">
@@ -230,7 +260,8 @@ export default function StudentTable({
                     </div>
                   </td>
                 </tr>
-              ))
+              );
+            })
             )}
           </tbody>
         </table>

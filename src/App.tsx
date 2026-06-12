@@ -19,7 +19,8 @@ import {
   FileText,
   Printer,
   Plus,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 
 export default function App() {
@@ -117,6 +118,15 @@ export default function App() {
     const saved = localStorage.getItem('khmer_student_sort_by');
     return (saved as 'serial' | 'rank' | 'name') || 'serial';
   });
+  const [tableFontSize, setTableFontSize] = useState<number>(() => {
+    const saved = localStorage.getItem('khmer_student_font_size');
+    return saved ? parseInt(saved, 10) : 11;
+  });
+  const [alertThreshold, setAlertThreshold] = useState<number>(() => {
+    const saved = localStorage.getItem('khmer_student_alert_threshold');
+    return saved ? parseFloat(saved) : 5.0;
+  });
+  const [showOnlyLowPerformers, setShowOnlyLowPerformers] = useState<boolean>(false);
   const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [localMessage, setLocalMessage] = useState<{ type: 'info' | 'success' | 'error'; text: string } | null>(null);
 
@@ -136,6 +146,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('khmer_student_sort_by', sortBy);
   }, [sortBy]);
+
+  useEffect(() => {
+    localStorage.setItem('khmer_student_font_size', tableFontSize.toString());
+  }, [tableFontSize]);
+
+  useEffect(() => {
+    localStorage.setItem('khmer_student_alert_threshold', alertThreshold.toString());
+  }, [alertThreshold]);
 
   // Is active view read-only (semester/yearly computed averages)
   const isReadOnly = React.useMemo(() => {
@@ -170,7 +188,8 @@ export default function App() {
     name: string, 
     gender: 'ប្រុស' | 'ស្រី', 
     serialNo: string, 
-    scoresData: SubjectScores
+    scoresData: SubjectScores,
+    attendanceData: { present: number; absent: number }
   ) => {
     if (isReadOnly) return;
 
@@ -189,6 +208,10 @@ export default function App() {
           monthlyScores: {
             ...(existing.monthlyScores || {}),
             [config.selectedMonth]: scoresData
+          },
+          monthlyAttendance: {
+            ...(existing.monthlyAttendance || {}),
+            [config.selectedMonth]: attendanceData
           }
         };
       } else {
@@ -201,6 +224,9 @@ export default function App() {
           className: config.className,
           monthlyScores: {
             [config.selectedMonth]: scoresData
+          },
+          monthlyAttendance: {
+            [config.selectedMonth]: attendanceData
           }
         });
       }
@@ -277,6 +303,7 @@ export default function App() {
       'វិទ្យាសាស្ត្រ',
       'សិក្សាសង្គម (សីលធម៌-ពលរដ្ឋ)', 'សិក្សាសង្គម (ភូមិវិទ្យា)', 'សិក្សាសង្គម (ប្រវត្តិវិទ្យា)',
       'អប់រំកាយនិងកីឡា', 'បំណិន', 'ភាសាបរទេស',
+      'វត្តមាន (មក)', 'អវត្តមាន (ឈប់)',
       'ពិន្ទុសរុប', 'មធ្យមភាគ', 'ចំណាត់ថ្នាក់', 'និទ្ទេស', 'ស្ថានភាព'
     ];
 
@@ -287,6 +314,7 @@ export default function App() {
       s.scores.science,
       s.scores.socialCivics, s.scores.socialGeography, s.scores.socialHistory,
       s.scores.physicalEducation, s.scores.practicalSkills, s.scores.foreignLanguage,
+      s.attendance?.present || 0, s.attendance?.absent || 0,
       s.totalScore, s.average, s.rank, s.grade, s.status
     ]);
 
@@ -345,9 +373,9 @@ export default function App() {
       </head>
       <body>
         <table>
-          <tr><td colspan="21" class="title-row">សន្លឹកបញ្ជីស្រង់ពិន្ទុមធ្យមភាគសិស្សថ្នាក់បឋមសិក្សា</td></tr>
-          <tr><td colspan="21" class="title-row">ថ្នាក់រៀន៖ ${config.className} | របាយការណ៍៖ ${config.selectedMonth} | ឆ្នាំសិក្សា៖ ២០២៥ - ២០២៦</td></tr>
-          <tr><td colspan="21" style="border:none; height: 10px;"></td></tr>
+          <tr><td colspan="23" class="title-row">សន្លឹកបញ្ជីស្រង់ពិន្ទុមធ្យមភាគសិស្សថ្នាក់បឋមសិក្សា</td></tr>
+          <tr><td colspan="23" class="title-row">ថ្នាក់រៀន៖ ${config.className} | របាយការណ៍៖ ${config.selectedMonth} | ឆ្នាំសិក្សា៖ ២០២៥ - ២០២៦</td></tr>
+          <tr><td colspan="23" style="border:none; height: 10px;"></td></tr>
           
           <tr>
             <th rowspan="2">ល.រ</th>
@@ -360,6 +388,7 @@ export default function App() {
             <th rowspan="2">អប់រំកាយ</th>
             <th rowspan="2">បំណិនជីវិត</th>
             <th rowspan="2">ភាសាបរទេស</th>
+            <th colspan="2" style="background-color: #fef3c7; color: #92400e;">វត្តមានកិច្ចការ</th>
             <th rowspan="2" class="bold-col">ពិន្ទុសរុប</th>
             <th rowspan="2" class="bold-col">មធ្យមភាគ</th>
             <th rowspan="2" class="rank-col">ចំណាត់ថ្នាក់</th>
@@ -376,6 +405,8 @@ export default function App() {
             <th class="header-bg-social">សីល</th>
             <th class="header-bg-social">ភូមិ</th>
             <th class="header-bg-social">ប្រវត្តិ</th>
+            <th style="background-color: #fffbeb; color: #15803d;">មក</th>
+            <th style="background-color: #fffbeb; color: #b91c1c;">ឈប់</th>
           </tr>
     `;
 
@@ -398,6 +429,8 @@ export default function App() {
           <td>${s.scores.physicalEducation}</td>
           <td>${s.scores.practicalSkills}</td>
           <td>${s.scores.foreignLanguage}</td>
+          <td>${s.attendance?.present || 0}</td>
+          <td style="${s.attendance?.absent > 0 ? 'color:#dc2626; font-weight:bold;' : ''}">${s.attendance?.absent || 0}</td>
           <td class="bold-col">${s.totalScore}</td>
           <td class="bold-col">${s.average}</td>
           <td class="rank-col">${s.rank}</td>
@@ -468,6 +501,7 @@ export default function App() {
                <th rowspan="2">កាយ</th>
                <th rowspan="2">បំណិន</th>
                <th rowspan="2">បរទេស</th>
+               <th colspan="2">វត្តមាន</th>
                <th rowspan="2">សរុប</th>
                <th rowspan="2">មធ្យម</th>
                <th rowspan="2">ចំណាត់.</th>
@@ -484,6 +518,8 @@ export default function App() {
               <th>សីល</th>
               <th>ភូមិ</th>
               <th>ប្រវត្តិ</th>
+              <th>មក</th>
+              <th>ឈប់</th>
             </tr>
           </thead>
           <tbody>
@@ -508,6 +544,8 @@ export default function App() {
           <td>${s.scores.physicalEducation}</td>
           <td>${s.scores.practicalSkills}</td>
           <td>${s.scores.foreignLanguage}</td>
+          <td>${s.attendance?.present || 0}</td>
+          <td>${s.attendance?.absent || 0}</td>
           <td><strong>${s.totalScore}</strong></td>
           <td><strong>${s.average}</strong></td>
           <td><strong>${s.rank}</strong></td>
@@ -679,11 +717,15 @@ export default function App() {
 
   // Filters and sorting calculation
   const filteredStudents = React.useMemo(() => {
-    const list = computedStudents.filter((s) => {
+    let list = computedStudents.filter((s) => {
       const matchSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.serialNo.includes(searchQuery);
       const matchGender = genderFilter === 'ទាំងអស់' ? true : s.gender === genderFilter;
       return matchSearch && matchGender;
     });
+
+    if (showOnlyLowPerformers) {
+      list = list.filter(s => s.average < alertThreshold);
+    }
 
     if (sortBy === 'rank') {
       return [...list].sort((a, b) => a.rank - b.rank);
@@ -699,7 +741,7 @@ export default function App() {
         return a.serialNo.localeCompare(b.serialNo);
       });
     }
-  }, [computedStudents, searchQuery, genderFilter, sortBy]);
+  }, [computedStudents, searchQuery, genderFilter, sortBy, showOnlyLowPerformers, alertThreshold]);
 
   // Printable students sorted the same way but unfiltered by search or gender
   const printableStudents = React.useMemo(() => {
@@ -718,6 +760,11 @@ export default function App() {
       });
     }
   }, [computedStudents, sortBy]);
+
+  // Students with average lower than alertThreshold
+  const poorPerformingStudents = React.useMemo(() => {
+    return computedStudents.filter(s => s.average < alertThreshold);
+  }, [computedStudents, alertThreshold]);
 
   // Key stats computation
   const stats = React.useMemo(() => {
@@ -948,7 +995,7 @@ export default function App() {
           {/* SEARCH, FILTERS AND CONTROL BAR */}
           <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm shrink-0 flex flex-col xl:flex-row gap-3 justify-between items-stretch xl:items-center">
             
-            {/* Left search & sort */}
+            {/* Left search & sort & font size */}
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
               <div className="relative w-full sm:w-64">
                 <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
@@ -973,6 +1020,39 @@ export default function App() {
                   <option value="serial">លេខរៀង ល.រ (លំនាំដើម)</option>
                   <option value="rank">ចំណាត់ថ្នាក់ (តូច ទៅ ធំ)</option>
                   <option value="name">ឈ្មោះសិស្ស (ក - វ / A - Z)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:border-slate-300 transition-colors">
+                <span className="text-[10px] uppercase font-bold text-slate-400 whitespace-nowrap">ទំហំអក្សរ :</span>
+                <select
+                  value={tableFontSize}
+                  onChange={(e) => setTableFontSize(parseInt(e.target.value, 10))}
+                  className="bg-transparent border-0 text-xs font-semibold outline-none text-slate-700 cursor-pointer focus:ring-0 py-0 px-1 font-sans"
+                >
+                  <option value="9">9px (តូច)</option>
+                  <option value="10">10px (មធ្យមតូច)</option>
+                  <option value="11">11px (ស្តង់ដារ)</option>
+                  <option value="12">12px (មធ្យម)</option>
+                  <option value="13">13px (ធំល្មម)</option>
+                  <option value="14">14px (ធំ)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:border-slate-300 transition-colors">
+                <span className="text-[10px] uppercase font-bold text-slate-400 whitespace-nowrap">កម្រិតព្រមាន (ទាបជាង) :</span>
+                <select
+                  value={alertThreshold}
+                  onChange={(e) => setAlertThreshold(parseFloat(e.target.value))}
+                  className="bg-transparent border-0 text-xs font-semibold outline-none text-red-600 cursor-pointer focus:ring-0 py-0 px-1 font-sans"
+                >
+                  <option value="4.0">4.0</option>
+                  <option value="4.5">4.5</option>
+                  <option value="5.0">5.0 (ស្តង់ដារ)</option>
+                  <option value="5.5">5.5</option>
+                  <option value="6.0">6.0</option>
+                  <option value="6.5">6.5</option>
+                  <option value="7.0">7.0</option>
                 </select>
               </div>
             </div>
@@ -1017,6 +1097,42 @@ export default function App() {
             </div>
           </div>
 
+          {/* UNDERPERFORMING STUDENTS WARNING BANNER */}
+          {poorPerformingStudents.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 shrink-0 print:hidden transition-all shadow-xs">
+              <div className="flex items-start gap-2.5">
+                <div className="bg-red-100 p-1.5 rounded-lg text-red-650 shrink-0">
+                  <AlertTriangle className="w-4 h-4 animate-pulse text-red-600" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-red-900 font-sans flex items-center gap-2">
+                    <span>សិស្សមានមធ្យមភាគទាបជាងកម្រិតកំណត់ ({alertThreshold}/10)</span>
+                    <span className="bg-red-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-sm">
+                      {poorPerformingStudents.length} នាក់
+                    </span>
+                  </h4>
+                  <p className="text-[10px] text-red-750 mt-1 font-sans leading-relaxed">
+                    សិស្សដែលត្រូវការយកចិត្តទុកដាក់ស្ដារពិន្ទុជាបន្ទាន់ ៖{' '}
+                    <span className="font-bold underline text-red-800">
+                      {poorPerformingStudents.map(s => `${s.name} (${s.average})`).join(', ')}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowOnlyLowPerformers(!showOnlyLowPerformers)}
+                className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer whitespace-nowrap active:scale-95 flex items-center gap-1 ${
+                  showOnlyLowPerformers
+                    ? 'bg-red-600 border-red-600 text-white hover:bg-red-700 shadow-sm'
+                    : 'bg-white border-red-200 text-red-700 hover:bg-red-50'
+                }`}
+              >
+                <span>{showOnlyLowPerformers ? 'បង្ហាញសិស្សទាំងអស់ឡើងវិញ' : 'ចម្រោះយកតែសិស្សទាំងនេះ'}</span>
+              </button>
+            </div>
+          )}
+
           {/* Modal for StudentForm (Add / Edit Student) */}
           {(isFormOpen || activeStudent !== null) && (
             <div 
@@ -1059,6 +1175,8 @@ export default function App() {
               selectedMonth={config.selectedMonth}
               sortBy={sortBy}
               onSortChange={setSortBy}
+              tableFontSize={tableFontSize}
+              alertThreshold={alertThreshold}
             />
           </div>
 
@@ -1121,7 +1239,7 @@ export default function App() {
       </footer>
 
       {/* ==================== PRINT ONLY OFFICIAL GRADE SHEET TEMPLATE ==================== */}
-      <div className="hidden print:block w-full p-8 bg-white text-slate-900 font-sans" style={{ fontSize: '10px' }}>
+      <div className="hidden print:block w-full p-8 bg-white text-slate-900 font-sans" style={{ fontSize: `${tableFontSize}px` }}>
         
         {/* Kingdom & Ministry Headers */}
         <div className="text-center mb-6 leading-relaxed">
@@ -1144,9 +1262,9 @@ export default function App() {
         </div>
 
         {/* Dynamic Printable Table Grid */}
-        <table className="w-full border-collapse border border-slate-800 text-center text-[9px]">
+        <table className="w-full border-collapse border border-slate-800 text-center" style={{ fontSize: `${tableFontSize}px` }}>
           <thead>
-            <tr className="bg-slate-100 border-b border-slate-800">
+            <tr className="bg-slate-100 border-b border-slate-800" style={{ fontSize: `${Math.max(9, tableFontSize - 1)}px` }}>
               <th rowSpan={2} className="border border-slate-705 p-1 font-bold">ល.រ</th>
               <th rowSpan={2} className="border border-slate-705 p-1 font-bold text-left min-w-[120px]">ឈ្មោះសិស្ស</th>
               <th rowSpan={2} className="border border-slate-705 p-1 font-bold">ភេទ</th>
@@ -1163,7 +1281,7 @@ export default function App() {
               <th rowSpan={2} className="border border-slate-705 p-1 font-bold bg-slate-200">និទ្ទេស</th>
               <th rowSpan={2} className="border border-slate-705 p-1 font-bold">លទ្ធផល</th>
             </tr>
-            <tr className="bg-slate-50 border-b border-slate-800">
+            <tr className="bg-slate-50 border-b border-slate-800" style={{ fontSize: `${Math.max(8, tableFontSize - 2)}px` }}>
               <th className="border border-slate-600 p-0.5">អាន</th>
               <th className="border border-slate-600 p-0.5">សរសេរ</th>
               <th className="border border-slate-600 p-0.5">តែង</th>

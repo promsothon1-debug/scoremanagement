@@ -1,4 +1,4 @@
-import { Student, SubjectScores } from '../types';
+import { Student, SubjectScores, Attendance } from '../types';
 
 export const ZERO_SCORES: SubjectScores = {
   khmerRead: 0,
@@ -95,6 +95,43 @@ export function getScoresForPeriod(student: Student, period: string): SubjectSco
   return scores[period] || { ...ZERO_SCORES };
 }
 
+export function getAttendanceForPeriod(student: Student, period: string): Attendance {
+  const attendance = student.monthlyAttendance || {};
+
+  if (period === 'ឆមាសទី១') {
+    const months = ['ខែធ្នូ', 'ខែមករា', 'ខែកុម្ភៈ', 'ខែមីនា'];
+    let present = 0;
+    let absent = 0;
+    months.forEach(m => {
+      present += attendance[m]?.present || 0;
+      absent += attendance[m]?.absent || 0;
+    });
+    return { present, absent };
+  }
+
+  if (period === 'ឆមាសទី២') {
+    const months = ['ខែឧសភា', 'ខែមិថុនា', 'ខែកក្កដា'];
+    let present = 0;
+    let absent = 0;
+    months.forEach(m => {
+      present += attendance[m]?.present || 0;
+      absent += attendance[m]?.absent || 0;
+    });
+    return { present, absent };
+  }
+
+  if (period === 'ប្រចាំឆ្នាំ' || period === 'ដំណាច់ឆ្នាំ') {
+    const att1 = getAttendanceForPeriod(student, 'ឆមាសទី១');
+    const att2 = getAttendanceForPeriod(student, 'ឆមាសទី២');
+    return {
+      present: att1.present + att2.present,
+      absent: att1.absent + att2.absent,
+    };
+  }
+
+  return attendance[period] || { present: 0, absent: 0 };
+}
+
 export interface ComputedStudent {
   id: string;
   serialNo: string;
@@ -106,11 +143,13 @@ export interface ComputedStudent {
   rank: number;
   grade: 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
   status: 'ជាប់' | 'ធ្លាក់';
+  attendance: Attendance;
 }
 
 export function computeStudentsForPeriod(students: Student[], period: string): ComputedStudent[] {
   const computedList = students.map(student => {
     const scores = getScoresForPeriod(student, period);
+    const attendance = getAttendanceForPeriod(student, period);
     const { totalScore, average, grade, status } = calculateScores(scores);
     return {
       id: student.id,
@@ -123,6 +162,7 @@ export function computeStudentsForPeriod(students: Student[], period: string): C
       grade,
       status,
       rank: 1,
+      attendance,
     };
   });
 

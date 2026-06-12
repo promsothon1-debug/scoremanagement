@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Student, SubjectScores } from '../types';
-import { UserPlus, Save, Edit3, X, Lock } from 'lucide-react';
+import { UserPlus, Save, Edit3, X, Lock, Mic, MicOff } from 'lucide-react';
 
 interface StudentFormProps {
   activeStudent: Student | null;
   selectedMonth: string;
   isReadOnly: boolean;
-  onSave: (id: string, name: string, gender: 'ប្រុស' | 'ស្រី', serialNo: string, scores: SubjectScores) => void;
+  onSave: (
+    id: string,
+    name: string,
+    gender: 'ប្រុស' | 'ស្រី',
+    serialNo: string,
+    scores: SubjectScores,
+    attendance: { present: number; absent: number }
+  ) => void;
   onCancelEdit: () => void;
   nextSerialNo: string;
 }
@@ -39,7 +46,69 @@ export default function StudentForm({
   const [name, setName] = useState('');
   const [gender, setGender] = useState<'ប្រុស' | 'ស្រី'>('ប្រុស');
   const [scores, setScores] = useState<SubjectScores>(initialScores);
+  const [attendance, setAttendance] = useState<{ present: number; absent: number }>({ present: 0, absent: 0 });
   const [validationError, setValidationError] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = React.useRef<any>(null);
+
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      setValidationError('កម្មវិធីរុករករបស់អ្នកមិនគាំទ្រការនិយាយបញ្ជាសំឡេងទេ (Web Speech API is not supported)។ សូមប្រើ Chrome ឬ- Safari។');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'km-KH'; // Khmer language support
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setValidationError('');
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error', event);
+        if (event.error === 'not-allowed') {
+          setValidationError('សូមអនុញ្ញាតឱ្យប្រើប្រាស់មីក្រូហ្វូន (Microphone access denied)។');
+        } else if (event.error === 'no-speech') {
+          setValidationError('មិនបានឮសំឡេងនិយាយទេ។ សូមសាកល្បងម្ដងទៀត។');
+        } else {
+          setValidationError(`កំហុសរកឃើញសំឡេង៖ ${event.error}`);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.onresult = (event: any) => {
+        const resultText = event.results[0][0].transcript;
+        if (resultText) {
+          setName(resultText.trim());
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error(err);
+      setValidationError('មានបញ្ហាក្នុងការចាប់ផ្ដើមសម្គាល់សំឡេង។');
+      setIsListening(false);
+    }
+  };
 
   // Update form values if edit target or month changes
   useEffect(() => {
@@ -50,12 +119,16 @@ export default function StudentForm({
       
       const savedScoresForMonth = activeStudent.monthlyScores?.[selectedMonth];
       setScores(savedScoresForMonth ? { ...savedScoresForMonth } : { ...initialScores });
+      
+      const savedAttendanceForMonth = activeStudent.monthlyAttendance?.[selectedMonth];
+      setAttendance(savedAttendanceForMonth ? { ...savedAttendanceForMonth } : { present: 0, absent: 0 });
       setValidationError('');
     } else {
       setSerialNo(nextSerialNo);
       setName('');
       setGender('ប្រុស');
       setScores({ ...initialScores });
+      setAttendance({ present: 0, absent: 0 });
       setValidationError('');
     }
   }, [activeStudent, nextSerialNo, selectedMonth]);
@@ -92,7 +165,8 @@ export default function StudentForm({
       name.trim(),
       gender,
       serialNo,
-      scores
+      scores,
+      attendance
     );
 
     // Reset Form only if not editing
@@ -100,6 +174,7 @@ export default function StudentForm({
       setName('');
       setGender('ប្រុស');
       setScores({ ...initialScores });
+      setAttendance({ present: 0, absent: 0 });
       setValidationError('');
     }
   };
@@ -167,14 +242,37 @@ export default function StudentForm({
                 />
               </div>
               <div className="col-span-6">
-                <label className="block text-[10px] text-slate-500 mb-1">ឈ្មោះសិស្ស</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="ឈ្មោះពេញសិស្ស..."
-                  className="w-full bg-white border border-slate-200 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none text-xs"
-                />
+                <label className="block text-[10px] text-slate-500 mb-1 flex justify-between items-center h-[15px]">
+                  <span>ឈ្មោះសិស្ស</span>
+                  {isListening && (
+                    <span className="text-[9px] text-red-500 animate-pulse font-semibold">កំពុងថត... (Speak now)</span>
+                  )}
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="ឈ្មោះពេញសិស្ស..."
+                    className="w-full bg-white border border-slate-200 rounded pl-2.5 pr-8 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleListening}
+                    title="និយាយបញ្ជាបញ្ចូលឈ្មោះសិស្ស (ភាសាខ្មែរ / English)"
+                    className={`absolute right-1 p-1 rounded transition-all active:scale-95 cursor-pointer ${
+                      isListening
+                        ? 'bg-red-50 text-red-600 hover:bg-red-100 animate-pulse'
+                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {isListening ? (
+                      <MicOff className="w-4 h-4 text-red-600" />
+                    ) : (
+                      <Mic className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="col-span-3">
                 <label className="block text-[10px] text-slate-500 mb-1">ភេទ</label>
@@ -385,6 +483,45 @@ export default function StudentForm({
                   onChange={(e) => handleScoreChange('foreignLanguage', e.target.value)}
                   placeholder="0.0"
                   className="w-full bg-white border border-slate-200 rounded px-2 py-1 focus:ring-1 focus:ring-amber-500 outline-none text-xs font-mono text-center"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 5: Attendance (វត្តមាន និងអវត្តមាន) */}
+          <div className="bg-slate-50 border border-slate-150 p-3 rounded-lg space-y-3">
+            <h3 className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">វត្តមាន និងអវត្តមាន (Attendance)</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] text-slate-600 mb-1">វត្តមាន (ថ្ងៃមានមុខ)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="31"
+                  step="1"
+                  value={attendance.present}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setAttendance(prev => ({ ...prev, present: isNaN(val) ? 0 : Math.max(0, val) }));
+                  }}
+                  placeholder="0"
+                  className="w-full bg-white border border-slate-200 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none text-xs text-center font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-slate-600 mb-1">អវត្តមាន (ថ្ងៃឈប់)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="31"
+                  step="1"
+                  value={attendance.absent}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setAttendance(prev => ({ ...prev, absent: isNaN(val) ? 0 : Math.max(0, val) }));
+                  }}
+                  placeholder="0"
+                  className="w-full bg-white border border-slate-200 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none text-xs text-center font-mono"
                 />
               </div>
             </div>

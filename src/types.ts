@@ -14,6 +14,11 @@ export interface SubjectScores {
   foreignLanguage: number;
 }
 
+export interface Attendance {
+  present: number;
+  absent: number;
+}
+
 export interface Student {
   id: string; // Auto-generated ID
   serialNo: string; // ល.រ - display serial number
@@ -24,6 +29,9 @@ export interface Student {
   // E.g., "ខែធ្នូ", "ខែមករា", "ខែកុម្ភៈ", "ខែមីនា", "ខែឧសភា", "ខែមិថុនា", "ខែកក្កដា"
   monthlyScores: {
     [period: string]: SubjectScores;
+  };
+  monthlyAttendance?: {
+    [period: string]: Attendance;
   };
 }
 
