@@ -112,6 +112,10 @@ export default function App() {
   const [activeStudent, setActiveStudent] = useState<Student | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState<'ទាំងអស់' | 'ប្រុស' | 'ស្រី'>('ទាំងអស់');
+  const [sortBy, setSortBy] = useState<'serial' | 'rank' | 'name'>(() => {
+    const saved = localStorage.getItem('khmer_student_sort_by');
+    return (saved as 'serial' | 'rank' | 'name') || 'serial';
+  });
   const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [localMessage, setLocalMessage] = useState<{ type: 'info' | 'success' | 'error'; text: string } | null>(null);
 
@@ -127,6 +131,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('khmer_class_list_v2', JSON.stringify(classList));
   }, [classList]);
+
+  useEffect(() => {
+    localStorage.setItem('khmer_student_sort_by', sortBy);
+  }, [sortBy]);
 
   // Is active view read-only (semester/yearly computed averages)
   const isReadOnly = React.useMemo(() => {
@@ -666,14 +674,47 @@ export default function App() {
     }
   };
 
-  // Filters calculation
+  // Filters and sorting calculation
   const filteredStudents = React.useMemo(() => {
-    return computedStudents.filter((s) => {
+    const list = computedStudents.filter((s) => {
       const matchSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.serialNo.includes(searchQuery);
       const matchGender = genderFilter === 'ទាំងអស់' ? true : s.gender === genderFilter;
       return matchSearch && matchGender;
     });
-  }, [computedStudents, searchQuery, genderFilter]);
+
+    if (sortBy === 'rank') {
+      return [...list].sort((a, b) => a.rank - b.rank);
+    } else if (sortBy === 'name') {
+      return [...list].sort((a, b) => a.name.localeCompare(b.name, 'km'));
+    } else {
+      return [...list].sort((a, b) => {
+        const numA = parseInt(a.serialNo);
+        const numB = parseInt(b.serialNo);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return numA - numB;
+        }
+        return a.serialNo.localeCompare(b.serialNo);
+      });
+    }
+  }, [computedStudents, searchQuery, genderFilter, sortBy]);
+
+  // Printable students sorted the same way but unfiltered by search or gender
+  const printableStudents = React.useMemo(() => {
+    if (sortBy === 'rank') {
+      return [...computedStudents].sort((a, b) => a.rank - b.rank);
+    } else if (sortBy === 'name') {
+      return [...computedStudents].sort((a, b) => a.name.localeCompare(b.name, 'km'));
+    } else {
+      return [...computedStudents].sort((a, b) => {
+        const numA = parseInt(a.serialNo);
+        const numB = parseInt(b.serialNo);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return numA - numB;
+        }
+        return a.serialNo.localeCompare(b.serialNo);
+      });
+    }
+  }, [computedStudents, sortBy]);
 
   // Key stats computation
   const stats = React.useMemo(() => {
@@ -902,20 +943,35 @@ export default function App() {
         <main className="flex-1 p-5 overflow-hidden flex flex-col gap-4">
           
           {/* SEARCH, FILTERS AND CONTROL BAR */}
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm shrink-0 flex flex-col md:flex-row gap-3 justify-between items-center">
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm shrink-0 flex flex-col xl:flex-row gap-3 justify-between items-stretch xl:items-center">
             
-            {/* Left search */}
-            <div className="relative w-full md:w-80">
-              <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-                <Search className="w-4 h-4" />
-              </span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ស្វែងរកតាមឈ្មោះ ឬ ល.រ សិស្ស..."
-                className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg pl-9 pr-3.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
-              />
+            {/* Left search & sort */}
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+              <div className="relative w-full sm:w-64">
+                <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
+                  <Search className="w-4 h-4" />
+                </span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="ស្វែងរកតាមឈ្មោះ ឬ ល.រ សិស្ស..."
+                  className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none transition-colors font-sans"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:border-slate-300 transition-colors">
+                <span className="text-[10px] uppercase font-bold text-slate-400 whitespace-nowrap">តម្រៀប :</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'serial' | 'rank' | 'name')}
+                  className="bg-transparent border-0 text-xs font-semibold outline-none text-slate-700 cursor-pointer focus:ring-0 py-0 px-1 font-sans"
+                >
+                  <option value="serial">លេខរៀង ល.រ (លំនាំដើម)</option>
+                  <option value="rank">ចំណាត់ថ្នាក់ (តូច ទៅ ធំ)</option>
+                  <option value="name">ឈ្មោះសិស្ស (ក - វ / A - Z)</option>
+                </select>
+              </div>
             </div>
 
             {/* Middle Quick description of active month */}
@@ -985,6 +1041,8 @@ export default function App() {
                 onDelete={handleDeleteStudent}
                 isReadOnly={isReadOnly}
                 selectedMonth={config.selectedMonth}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
               />
             </div>
           </div>
@@ -1103,7 +1161,7 @@ export default function App() {
             </tr>
           </thead>
           <tbody>
-            {computedStudents.map((student) => (
+            {printableStudents.map((student) => (
               <tr key={student.id} className="border-b border-slate-800">
                 <td className="border border-slate-700 p-1">{student.serialNo}</td>
                 <td className="border border-slate-700 p-1 text-left font-semibold">{student.name}</td>

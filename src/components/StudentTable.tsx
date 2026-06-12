@@ -1,7 +1,7 @@
 import React from 'react';
 import { Student } from '../types';
 import { ComputedStudent } from '../utils/calculations';
-import { Edit2, Trash2, ShieldAlert, Lock } from 'lucide-react';
+import { Edit2, Trash2, ShieldAlert, Lock, ArrowUpDown } from 'lucide-react';
 
 interface StudentTableProps {
   students: ComputedStudent[];
@@ -10,6 +10,8 @@ interface StudentTableProps {
   onDelete: (id: string) => void;
   isReadOnly: boolean;
   selectedMonth: string;
+  sortBy?: 'serial' | 'rank' | 'name';
+  onSortChange?: (field: 'serial' | 'rank' | 'name') => void;
 }
 
 export default function StudentTable({ 
@@ -18,7 +20,9 @@ export default function StudentTable({
   onEdit, 
   onDelete, 
   isReadOnly,
-  selectedMonth
+  selectedMonth,
+  sortBy = 'serial',
+  onSortChange
 }: StudentTableProps) {
   
   const handleDeleteConfirm = (compStudent: ComputedStudent) => {
@@ -53,8 +57,28 @@ export default function StudentTable({
         <table className="w-full border-collapse text-left" style={{ fontFamily: '"Khmer OS", "Kantumruy Pro", sans-serif' }}>
           <thead className="bg-slate-50 sticky top-0 z-10 select-none shadow-[0_1px_0_0_rgba(226,232,240,1)]">
             <tr className="border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold">
-              <th rowSpan={2} className="p-3 text-center border-r border-slate-200 w-12 bg-slate-50">ល.រ</th>
-              <th rowSpan={2} className="p-3 border-r border-slate-200 min-w-[140px] bg-slate-50">ឈ្មោះសិស្ស</th>
+              <th 
+                rowSpan={2} 
+                onClick={() => onSortChange?.('serial')}
+                className="p-3 text-center border-r border-slate-200 w-14 bg-slate-50 cursor-pointer hover:bg-slate-100 select-none transition-colors group"
+                title="ចុចដើម្បីតម្រៀបតាម លេខរៀង ល.រ"
+              >
+                <div className="flex items-center justify-center gap-0.5">
+                  <span>ល.រ</span>
+                  <ArrowUpDown className={`w-2.5 h-2.5 transition-opacity ${sortBy === 'serial' ? 'text-blue-600 opacity-100' : 'text-slate-400 opacity-0 group-hover:opacity-100'}`} />
+                </div>
+              </th>
+              <th 
+                rowSpan={2} 
+                onClick={() => onSortChange?.('name')}
+                className="p-3 border-r border-slate-200 min-w-[140px] bg-slate-50 cursor-pointer hover:bg-slate-100 select-none transition-colors group"
+                title="ចុចដើម្បីតម្រៀបតាម ឈ្មោះសិស្ស"
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span>ឈ្មោះសិស្ស</span>
+                  <ArrowUpDown className={`w-2.5 h-2.5 transition-opacity ${sortBy === 'name' ? 'text-blue-600 opacity-100' : 'text-slate-400 opacity-0 group-hover:opacity-100'}`} />
+                </div>
+              </th>
               <th rowSpan={2} className="p-3 text-center border-r border-slate-200 w-12 bg-slate-50">ភេទ</th>
               <th colSpan={3} className="p-1.5 text-center border-r border-slate-200 bg-blue-50/70 text-blue-800">ភាសាខ្មែរ</th>
               <th colSpan={3} className="p-1.5 text-center border-r border-slate-200 bg-green-50/70 text-green-800">គណិតវិទ្យា</th>
@@ -65,7 +89,17 @@ export default function StudentTable({
               <th rowSpan={2} className="p-2 text-center border-r border-slate-200 w-14 bg-slate-50">បរទេស</th>
               <th rowSpan={2} className="p-2 text-center border-r border-slate-200 w-16 bg-slate-100 font-bold text-slate-800">សរុប</th>
               <th rowSpan={2} className="p-2 text-center border-r border-slate-200 w-14 bg-slate-100 font-bold text-slate-800">មធ្យម</th>
-              <th rowSpan={2} className="p-2 text-center border-r border-slate-200 w-14 bg-red-50 font-bold text-red-600">ចំណាត់.</th>
+              <th 
+                rowSpan={2} 
+                onClick={() => onSortChange?.('rank')}
+                className="p-2 text-center border-r border-slate-200 w-16 bg-red-50 font-bold text-red-600 cursor-pointer hover:bg-red-100 hover:text-red-700 select-none transition-colors group"
+                title="ចុចដើម្បីតម្រៀបតាម ចំណាត់ថ្នាក់"
+              >
+                <div className="flex items-center justify-center gap-0.5">
+                  <span>ចំណាត់.</span>
+                  <ArrowUpDown className={`w-2.5 h-2.5 transition-opacity ${sortBy === 'rank' ? 'text-red-700 opacity-100' : 'text-slate-400 opacity-0 group-hover:opacity-100'}`} />
+                </div>
+              </th>
               <th rowSpan={2} className="p-2 text-center border-r border-slate-200 w-12 bg-slate-100 font-bold text-slate-800">និទ្ទេស</th>
               <th rowSpan={2} className="p-2 text-center w-24 bg-slate-50">សកម្មភាព</th>
             </tr>
