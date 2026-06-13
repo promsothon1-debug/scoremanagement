@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Student, SheetConfig, SubjectScores } from './types';
 import StudentForm from './components/StudentForm';
 import StudentTable from './components/StudentTable';
+import RankingTable from './components/RankingTable';
 import SheetsConfigPanel from './components/SheetsConfigPanel';
 import { computeStudentsForPeriod, calculateScores } from './utils/calculations';
 import { INITIAL_STUDENTS } from './utils/mockData';
@@ -24,7 +25,9 @@ import {
   ShieldCheck,
   GraduationCap,
   Lock,
-  Unlock
+  Unlock,
+  LayoutGrid,
+  Trophy
 } from 'lucide-react';
 
 export default function App() {
@@ -138,6 +141,8 @@ export default function App() {
     const saved = localStorage.getItem('khmer_student_role');
     return (saved as 'admin' | 'teacher') || 'admin';
   });
+
+  const [activeView, setActiveView] = useState<'full' | 'ranking'>('full');
 
   useEffect(() => {
     localStorage.setItem('khmer_student_role', userRole);
@@ -1076,6 +1081,34 @@ export default function App() {
         {/* MAIN USER AREA */}
         <main className="flex-1 p-5 overflow-hidden flex flex-col gap-4">
           
+          {/* TAB SEGMENTED CONTROLLER (VIEW TOGGLE) */}
+          <div className="flex bg-slate-205/60 p-1 rounded-xl border border-slate-300/30 self-start shrink-0 select-none print:hidden">
+            <button
+              type="button"
+              onClick={() => setActiveView('full')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold font-sans transition-all flex items-center gap-2 cursor-pointer active:scale-95 ${
+                activeView === 'full'
+                  ? 'bg-white text-slate-800 shadow-sm font-extrabold'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/40'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5 text-blue-600" />
+              <span>តារាងពិន្ទុពេញលេញ (Full Grade Sheet)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveView('ranking')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold font-sans transition-all flex items-center gap-2 cursor-pointer active:scale-95 ${
+                activeView === 'ranking'
+                  ? 'bg-white text-slate-800 shadow-sm font-extrabold'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/40'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-500" />
+              <span>តារាងចំណាត់ថ្នាក់ផ្លូវការ (Official Ranking Sheet)</span>
+            </button>
+          </div>
+          
           {/* SEARCH, FILTERS AND CONTROL BAR */}
           <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm shrink-0 flex flex-col xl:flex-row gap-3 justify-between items-stretch xl:items-center">
             
@@ -1247,21 +1280,29 @@ export default function App() {
 
           {/* Student Grade Table Sheet Grid */}
           <div className="flex-1 flex flex-col overflow-hidden min-h-[300px]">
-            <StudentTable
-              students={filteredStudents}
-              rawStudents={students}
-              onEdit={(student) => {
-                setActiveStudent(student);
-                setIsFormOpen(true);
-              }}
-              onDelete={handleDeleteStudent}
-              isReadOnly={isReadOnly}
-              selectedMonth={config.selectedMonth}
-              sortBy={sortBy}
-              onSortChange={setSortBy}
-              tableFontSize={tableFontSize}
-              alertThreshold={alertThreshold}
-            />
+            {activeView === 'ranking' ? (
+              <RankingTable
+                students={filteredStudents}
+                selectedMonth={config.selectedMonth}
+                className={config.className}
+              />
+            ) : (
+              <StudentTable
+                students={filteredStudents}
+                rawStudents={students}
+                onEdit={(student) => {
+                  setActiveStudent(student);
+                  setIsFormOpen(true);
+                }}
+                onDelete={handleDeleteStudent}
+                isReadOnly={isReadOnly}
+                selectedMonth={config.selectedMonth}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                tableFontSize={tableFontSize}
+                alertThreshold={alertThreshold}
+              />
+            )}
           </div>
 
           {/* METRIC CARD BAR */}
